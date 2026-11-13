@@ -4,7 +4,7 @@ import {
   Settings, Globe, Lock, Bell, CheckCircle, Plus, Trash2, ArrowUpRight, 
   ArrowDownRight, CreditCard, Building, Smartphone, FileText, ChevronRight
 } from 'lucide-react';
-
+console.log("🐄 KamadhenuERP: App.jsx component loaded successfully!");
 export default function App() {
   // Navigation & View States: 'landing', 'app'
   const [currentView, setCurrentView] = useState('landing');
