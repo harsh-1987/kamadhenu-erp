@@ -89,8 +89,8 @@ export const translations = {
 
 export const PLAN_LIMITS = {
   FREE: { name: 'FREE', price: 0, maxCows: 3, maxStaff: 0, marketplace: false, valueAdd: false, pAndL: false },
-  STARTER: { name: 'STARTER', price: 249, maxCows: 15, maxStaff: 2, marketplace: true, valueAdd: false, pAndL: false },
-  GROWTH: { name: 'GROWTH', price: 499, maxCows: 50, maxStaff: 999, marketplace: true, valueAdd: true, pAndL: true },
+  STARTER: { name: 'STARTER', price: 249, maxCows: 7, maxStaff: 2, marketplace: true, valueAdd: false, pAndL: false },
+  GROWTH: { name: 'GROWTH', price: 499, maxCows: 20, maxStaff: 999, marketplace: true, valueAdd: true, pAndL: true },
   ENTERPRISE: { name: 'ENTERPRISE', price: 999, maxCows: 9999, maxStaff: 9999, marketplace: true, valueAdd: true, pAndL: true }
 };
 
