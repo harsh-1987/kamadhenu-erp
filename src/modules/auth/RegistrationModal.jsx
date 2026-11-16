@@ -8,7 +8,6 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
     name: '',
     owner: '',
     phone: '',
-    email: '',
     location: 'Raipur, Chhattisgarh',
     plan: selectedPlan || 'GROWTH',
     pin: '1234'
