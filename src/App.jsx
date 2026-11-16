@@ -5,6 +5,7 @@ import RegistrationModal from './modules/auth/RegistrationModal';
 import BreedMarketplace from './modules/marketplace/BreedMarketplace';
 import SuperAdminDashboard from './modules/admin/SuperAdminDashboard';
 import FarmDashboard from './modules/erp/FarmDashboard';
+import FeedAdvisor from './modules/erp/FeedAdvisor';
 
 export default function App() {
   const [lang, setLang] = useState('en');
@@ -12,7 +13,26 @@ export default function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'register' | 'app' | 'marketplace' | 'superadmin'
   const [selectedPlanForReg, setSelectedPlanForReg] = useState('GROWTH');
   const [toast, setToast] = useState('');
+// --- Cross-Country / International Currency Detection ---
+  const [isInternational, setIsInternational] = useState(false);
 
+  useEffect(() => {
+    // चेक करें कि यूजर का टाइमज़ोन भारत (Asia/Kolkata) से बाहर का है या नहीं
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && !tz.includes('Kolkata') && !tz.includes('Calcutta')) {
+      setIsInternational(true);
+    }
+  }, []);
+
+  // प्राइस फॉर्मेट करने का फंक्शन
+  const formatPlanPrice = (inrPrice) => {
+    if (inrPrice === 0) return isInternational ? '$0/mo' : '₹0/mo';
+    if (isInternational) {
+      const usdMap = { 299: 10, 499: 20, 999: 35 };
+      return `$${usdMap[inrPrice] || Math.ceil(inrPrice / 50)}/mo`;
+    }
+    return `₹${inrPrice}/mo`;
+  };
   // Multi-Tenant Farms Database in localStorage
   const [farms, setFarms] = useState(() => {
     const saved = localStorage.getItem('kamadhenu_multi_farms_v2');
@@ -134,11 +154,11 @@ export default function App() {
                 },
                 {
                   key: 'STARTER', title: t.starterTier, price: '₹249/mo',
-                  features: ['Up to 15 Cows', 'HRMS Limit: 1–2 Staff', 'Public Breed Listing', 'Optional Price Hiding']
+                  features: ['Up to 7 Cows', 'HRMS Limit: 1–2 Staff', 'Public Breed Listing', 'Optional Price Hiding']
                 },
                 {
                   key: 'GROWTH', title: t.growthTier, price: '₹499/mo', popular: true,
-                  features: ['Up to 50 Cows', 'Unlimited HRMS Staff', 'Dahi, Makhan & Ghee Log', '2FA Encrypted Balance Sheet']
+                  features: ['Up to 20 Cows', 'Unlimited HRMS Staff', 'Dahi, Makhan & Ghee Log', '2FA Encrypted Balance Sheet']
                 },
                 {
                   key: 'ENTERPRISE', title: t.enterpriseTier, price: '₹999/mo',
