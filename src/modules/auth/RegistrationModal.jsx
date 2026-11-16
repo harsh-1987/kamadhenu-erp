@@ -131,7 +131,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
                 <input required type="tel" placeholder="+91 98261 XXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1">Email ID (for OTP) *</label>
+                <label className="block text-xs font-bold mb-1">Email ID (for OTP) </label>
                 <input required type="email" placeholder="owner@dairyfarm.in" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
               </div>
             </div>
@@ -141,8 +141,8 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
                 <label className="block text-xs font-bold mb-1">Select SaaS Tier</label>
                 <select value={formData.plan} onChange={e => setFormData({...formData, plan: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`}>
                   <option value="FREE">FREE (₹0/mo - Up to 3 Cows)</option>
-                  <option value="STARTER">STARTER (₹249/mo - 15 Cows, 2 Staff)</option>
-                  <option value="GROWTH">GROWTH (₹499/mo - 50 Cows, Full ERP)</option>
+                  <option value="STARTER">STARTER (₹249/mo - 7 Cows, 2 Staff)</option>
+                  <option value="GROWTH">GROWTH (₹499/mo - 20 Cows, Full ERP)</option>
                   <option value="ENTERPRISE">ENTERPRISE (₹999/mo - Unlimited)</option>
                 </select>
               </div>
