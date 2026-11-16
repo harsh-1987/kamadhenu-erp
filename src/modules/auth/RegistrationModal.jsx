@@ -8,6 +8,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
     name: '',
     owner: '',
     phone: '',
+    email: '',
     location: 'Raipur, Chhattisgarh',
     plan: selectedPlan || 'GROWTH',
     pin: '1234'
@@ -132,7 +133,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1">Email ID (for OTP) </label>
-                <input required type="email" placeholder="owner@dairyfarm.in" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
+                <input  type="email" placeholder="owner@dairyfarm.in" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
               </div>
             </div>
 
