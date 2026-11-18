@@ -34,6 +34,19 @@ export default function FarmDashboard({
     inMarketplace: true, showPrice: true, askingPrice: ''
   });
   const [feedDeduct, setFeedDeduct] = useState({ id: 'f1', qty: '' });
+  const [stockAdd, setStockAdd] = useState({ id: 'f1', qty: '' });
+
+  const handleAddStock = (e) => {
+    e.preventDefault();
+    const q = Number(stockAdd.qty);
+    if (!q || q <= 0) return;
+
+    setInventory(inventory.map(item =>
+      item.id === stockAdd.id ? { ...item, stock: item.stock + q } : item
+    ));
+    setStockAdd({ ...stockAdd, qty: '' });
+    showToast(`📦 Added ${q} kg successfully to stock!`);
+  };
   const [newMilk, setNewMilk] = useState({ rawLiters: '', dahiLiters: '', makhanKg: '' });
   const [newEmp, setNewEmp] = useState({ name: '', role: '', salary: '', freeMilk: '' });
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -278,7 +291,13 @@ export default function FarmDashboard({
               <input required type="number" placeholder="Kg" value={feedDeduct.qty} onChange={e => setFeedDeduct({...feedDeduct, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
               <button type="submit" className="bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-xs">Deduct</button>
             </form>
-
+            <form onSubmit={handleAddStock} className="flex gap-2 pt-2 border-t border-current/10">
+              <select value={stockAdd.id} onChange={e => setStockAdd({...stockAdd, id: e.target.value})} className={`flex-1 rounded-xl px-3 py-2 text-xs border ${inputClass}`}>
+                {inventory.map(i => <option key={i.id} value={i.id}>Refill: {i.name}</option>)}
+              </select>
+              <input required type="number" placeholder="Add Kg" value={stockAdd.qty} onChange={e => setStockAdd({...stockAdd, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
+              <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs">+ Add Stock</button>
+            </form>
             <div className="space-y-2">
               {inventory.map(item => (
                 <div key={item.id} className="p-3 rounded-xl bg-current/5 flex justify-between items-center text-xs">
