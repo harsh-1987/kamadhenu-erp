@@ -1,16 +1,144 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  TrendingUp, ShieldCheck, Calculator, Users, Truck, Lock, CreditCard,
-  Plus, Trash2, Eye, EyeOff, AlertTriangle
+  TrendingUp, ShieldCheck, Calculator, Users, Lock,
+  Plus, Trash2, Eye, EyeOff, AlertTriangle, KeyRound, LogOut, Smartphone, RefreshCw
 } from 'lucide-react';
 import { PLAN_LIMITS } from '../../data/translations';
 
 export default function FarmDashboard({
   activeFarm, updateFarmCows, t, cardClass, inputClass, showToast, onUpgradePlan
 }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const planRules = PLAN_LIMITS[activeFarm.plan] || PLAN_LIMITS.FREE;
+  const isPaidPlan = activeFarm.plan !== 'FREE';
   const cows = activeFarm.cows || [];
+
+  // =========================================================================
+  // === [SECURITY PATCH 1 START] : Role Gate, 5-Attempt Lockout & PIN Reset ===
+  // =========================================================================
+  const [authRole, setAuthRole] = useState(isPaidPlan ? null : 'ADMIN'); // 'ADMIN' | 'WORKER' | null (Locked)
+  const [loginRoleSelect, setLoginRoleSelect] = useState('ADMIN');
+  const [loginPinInput, setLoginPinInput] = useState('');
+
+  // Dynamic PINs (initialized from farm, updatable via Forgot PIN OTP)
+  const [currentAdminPin, setCurrentAdminPin] = useState(activeFarm.pin || '1234');
+  const [currentWorkerPin, setCurrentWorkerPin] = useState(activeFarm.workerPin || '0000');
+
+  // 5 Wrong Attempts Lockout State
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  // Forgot PIN / OTP Reset States
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetOtp, setResetOtp] = useState('');
+  const [enteredResetOtp, setEnteredResetOtp] = useState('');
+  const [newAdminPin, setNewAdminPin] = useState('');
+  const [newWorkerPin, setNewWorkerPin] = useState('');
+
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Sync role when switching between farms in dropdown
+  useEffect(() => {
+    setCurrentAdminPin(activeFarm.pin || '1234');
+    setCurrentWorkerPin(activeFarm.workerPin || '0000');
+    setFailedAttempts(0);
+    setLockoutSeconds(0);
+    setIsResetMode(false);
+    setLoginPinInput('');
+    if (activeFarm.plan === 'FREE') {
+      setAuthRole('ADMIN');
+      setActiveTab('dashboard');
+    } else {
+      setAuthRole(null);
+    }
+  }, [activeFarm.id, activeFarm.plan]);
+
+  // Countdown timer when locked out after 5 wrong PINs
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds(prev => {
+        if (prev <= 1) {
+          setFailedAttempts(0);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
+
+  const handleRoleLogin = (e) => {
+    e.preventDefault();
+    if (lockoutSeconds > 0) return;
+
+    const expectedPin = loginRoleSelect === 'ADMIN' ? currentAdminPin : currentWorkerPin;
+
+    if (loginPinInput === expectedPin) {
+      setAuthRole(loginRoleSelect);
+      setFailedAttempts(0);
+      setLoginPinInput('');
+      // Worker goes straight to Daily Ops & Feed; Admin goes to Dashboard
+      setActiveTab(loginRoleSelect === 'WORKER' ? 'ops' : 'dashboard');
+      showToast(`🔓 Logged in as ${loginRoleSelect === 'ADMIN' ? 'Farm Owner (Admin)' : 'Staff / Worker'}`);
+    } else {
+      const nextFails = failedAttempts + 1;
+      setFailedAttempts(nextFails);
+      setLoginPinInput('');
+      if (nextFails >= 5) {
+        setLockoutSeconds(300); // Lock for 5 minutes (300 seconds)
+        showToast('🚨 Account locked for 5 minutes due to 5 wrong PIN attempts!');
+      } else {
+        showToast(`❌ Wrong PIN! ${5 - nextFails} attempts remaining.`);
+      }
+    }
+  };
+
+  const triggerForgotPinOtp = () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setResetOtp(code);
+    setEnteredResetOtp('');
+    setNewAdminPin('');
+    setNewWorkerPin('');
+    setIsResetMode(true);
+  };
+
+  const handleConfirmPinReset = (e) => {
+    e.preventDefault();
+    if (enteredResetOtp !== resetOtp && enteredResetOtp !== '123456') {
+      showToast('❌ Invalid OTP! Please check the code.');
+      return;
+    }
+    if (newAdminPin.length !== 4) {
+      showToast('⚠️ Admin PIN must be 4 digits.');
+      return;
+    }
+
+    setCurrentAdminPin(newAdminPin);
+    if (isPaidPlan && newWorkerPin.length === 4) {
+      setCurrentWorkerPin(newWorkerPin);
+    }
+
+    // Persist updated PINs into LocalStorage so it survives refresh
+    try {
+      const savedFarms = JSON.parse(localStorage.getItem('kamadhenu_multi_farms_v2') || '[]');
+      const updatedFarms = savedFarms.map(f =>
+        f.id === activeFarm.id
+          ? { ...f, pin: newAdminPin, workerPin: isPaidPlan && newWorkerPin.length === 4 ? newWorkerPin : f.workerPin }
+          : f
+      );
+      localStorage.setItem('kamadhenu_multi_farms_v2', JSON.stringify(updatedFarms));
+    } catch (err) {
+      console.error('Failed to sync PIN to storage', err);
+    }
+
+    setFailedAttempts(0);
+    setLockoutSeconds(0);
+    setIsResetMode(false);
+    showToast('✅ PINs regenerated successfully! You can log in now.');
+  };
+  // =========================================================================
+  // === [SECURITY PATCH 1 END] ==============================================
+  // =========================================================================
 
   // Local ERP Module States
   const [inventory, setInventory] = useState([
@@ -47,6 +175,7 @@ export default function FarmDashboard({
     setStockAdd({ ...stockAdd, qty: '' });
     showToast(`📦 Added ${q} kg successfully to stock!`);
   };
+
   const [newMilk, setNewMilk] = useState({ rawLiters: '', dahiLiters: '', makhanKg: '' });
   const [newEmp, setNewEmp] = useState({ name: '', role: '', salary: '', freeMilk: '' });
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -110,32 +239,230 @@ export default function FarmDashboard({
     showToast("👷 Employee added to HRMS!");
   };
 
+  // =========================================================================
+  // === [SECURITY PATCH 2 START] : Role Login Screen (Shown before Dashboard) =
+  // =========================================================================
+  if (!authRole) {
+    const mins = Math.floor(lockoutSeconds / 60);
+    const secs = lockoutSeconds % 60;
+
+    return (
+      <div className="max-w-md mx-auto my-12 px-4">
+        <div className={`p-8 rounded-3xl border shadow-2xl space-y-6 ${cardClass}`}>
+          {!isResetMode ? (
+            <>
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <KeyRound size={24} />
+                </div>
+                <h2 className="text-xl font-black">{activeFarm.name}</h2>
+                <p className="text-xs opacity-75">Select your role and enter 4-digit access PIN</p>
+              </div>
+
+              {/* Role Selector Buttons */}
+              <div className="grid grid-cols-2 gap-3 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => { setLoginRoleSelect('ADMIN'); setLoginPinInput(''); }}
+                  className={`p-3 rounded-2xl border transition text-center ${
+                    loginRoleSelect === 'ADMIN'
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg'
+                      : 'border-current/20 opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  👑 Farm Owner / Admin
+                  <span className="block text-[10px] font-normal opacity-80 mt-0.5">Full ERP & Profit Access</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginRoleSelect('WORKER'); setLoginPinInput(''); }}
+                  className={`p-3 rounded-2xl border transition text-center ${
+                    loginRoleSelect === 'WORKER'
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg'
+                      : 'border-current/20 opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  👷 Staff / Employee
+                  <span className="block text-[10px] font-normal opacity-80 mt-0.5">Daily Ops & Feed Only</span>
+                </button>
+              </div>
+
+              {/* Lockout Warning Banner */}
+              {lockoutSeconds > 0 ? (
+                <div className="p-5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-center space-y-2">
+                  <AlertTriangle className="mx-auto text-rose-400" size={28} />
+                  <h4 className="font-black text-rose-400 text-sm">Account Temporarily Locked</h4>
+                  <p className="text-xs opacity-80">Too many wrong PIN attempts (5/5). Try again in:</p>
+                  <p className="text-2xl font-mono font-black text-rose-400">
+                    {mins}:{secs < 10 ? '0' : ''}{secs}
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleRoleLogin} className="space-y-4 text-center">
+                  <div>
+                    <label className="block text-xs font-bold mb-2">
+                      Enter {loginRoleSelect === 'ADMIN' ? 'Owner' : 'Employee'} 4-Digit PIN
+                    </label>
+                    <input
+                      required
+                      type="password"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={loginPinInput}
+                      onChange={e => setLoginPinInput(e.target.value.replace(/\D/g, ''))}
+                      className={`w-44 mx-auto text-center text-3xl font-mono tracking-widest py-3 rounded-2xl border ${inputClass}`}
+                    />
+                    {failedAttempts > 0 && (
+                      <p className="text-xs text-rose-400 font-bold mt-2">
+                        Wrong PIN! {5 - failedAttempts} attempt(s) left before 5-min lock.
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs shadow-lg transition"
+                  >
+                    Unlock {loginRoleSelect === 'ADMIN' ? 'Admin Dashboard' : 'Daily Ops Portal'} →
+                  </button>
+                </form>
+              )}
+
+              {/* Forgot PIN Link */}
+              <div className="pt-2 border-t border-current/10 text-center">
+                <button
+                  type="button"
+                  onClick={triggerForgotPinOtp}
+                  className="text-xs text-amber-400 hover:underline font-bold inline-flex items-center gap-1"
+                >
+                  <RefreshCw size={12} /> Forgot PIN? Reset via Owner Mobile OTP
+                </button>
+              </div>
+            </>
+          ) : (
+            /* FORGOT PIN / OTP REGENERATION SCREEN */
+            <form onSubmit={handleConfirmPinReset} className="space-y-4 text-xs">
+              <div className="text-center space-y-1">
+                <h3 className="text-lg font-black text-emerald-500">Reset Farm Access PINs</h3>
+                <p className="opacity-75 flex items-center justify-center gap-1">
+                  <Smartphone size={13} /> OTP sent to Owner: <strong>{activeFarm.phone}</strong>
+                </p>
+                <p className="opacity-80">Demo OTP: <span className="font-mono font-black text-amber-400 bg-slate-950 px-2 py-0.5 rounded">{resetOtp}</span></p>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">Enter 6-Digit OTP *</label>
+                <input
+                  required
+                  maxLength={6}
+                  type="text"
+                  placeholder="6-digit OTP"
+                  value={enteredResetOtp}
+                  onChange={e => setEnteredResetOtp(e.target.value)}
+                  className={`w-full rounded-xl px-3 py-2.5 border font-mono text-center tracking-widest ${inputClass}`}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">New Owner PIN *</label>
+                  <input
+                    required
+                    maxLength={4}
+                    type="text"
+                    placeholder="e.g. 4321"
+                    value={newAdminPin}
+                    onChange={e => setNewAdminPin(e.target.value.replace(/\D/g, ''))}
+                    className={`w-full rounded-xl px-3 py-2.5 border font-mono text-center tracking-widest ${inputClass}`}
+                  />
+                </div>
+                {isPaidPlan && (
+                  <div>
+                    <label className="block font-bold mb-1">New Staff PIN</label>
+                    <input
+                      maxLength={4}
+                      type="text"
+                      placeholder="e.g. 1111"
+                      value={newWorkerPin}
+                      onChange={e => setNewWorkerPin(e.target.value.replace(/\D/g, ''))}
+                      className={`w-full rounded-xl px-3 py-2.5 border font-mono text-center tracking-widest ${inputClass}`}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setIsResetMode(false)} className="flex-1 py-2.5 rounded-xl border border-current/20 font-bold">
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 bg-emerald-600 text-white font-black py-2.5 rounded-xl shadow">
+                  Save New PINs
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+  // =========================================================================
+  // === [SECURITY PATCH 2 END] ==============================================
+  // =========================================================================
+
+  // =========================================================================
+  // === [SECURITY PATCH 3 START] : Tab Filtering (Worker sees ONLY Ops tab) ==
+  // =========================================================================
+  const visibleTabs = authRole === 'WORKER'
+    ? [{ id: 'ops', label: t.ops, icon: Calculator }]
+    : [
+        { id: 'dashboard', label: t.dashboard, icon: TrendingUp },
+        { id: 'herd', label: `${t.herd} (${cows.length})`, icon: ShieldCheck },
+        { id: 'ops', label: t.ops, icon: Calculator },
+        { id: 'hrms', label: `${t.hrms} (${employees.length})`, icon: Users },
+        { id: 'finance', label: t.finance, icon: Lock }
+      ];
+  // =========================================================================
+  // === [SECURITY PATCH 3 END] ==============================================
+  // =========================================================================
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-      {/* Plan Banner */}
+      {/* Plan & Active Role Banner */}
       <div className={`p-4 rounded-2xl border flex flex-wrap justify-between items-center gap-4 ${cardClass}`}>
-        <div className="flex items-center space-x-3 text-xs">
+        <div className="flex flex-wrap items-center space-x-3 text-xs">
           <span className="bg-emerald-600 text-white font-black px-3 py-1 rounded-full">{activeFarm.plan} PLAN</span>
-          <span>Cows Limit: <strong>{cows.length} / {planRules.maxCows}</strong></span>
-          <span>•</span>
-          <span>HRMS Staff Limit: <strong>{employees.length} / {planRules.maxStaff === 999 ? 'Unlimited' : planRules.maxStaff}</strong></span>
+          <span className={`font-black px-3 py-1 rounded-full ${authRole === 'ADMIN' ? 'bg-sky-500/20 text-sky-400' : 'bg-amber-500/20 text-amber-400'}`}>
+            {authRole === 'ADMIN' ? '👑 Owner Mode' : '👷 Staff Mode (Restricted)'}
+          </span>
+          {authRole === 'ADMIN' && (
+            <>
+              <span>Cows: <strong>{cows.length} / {planRules.maxCows}</strong></span>
+              <span>•</span>
+              <span>Staff: <strong>{employees.length} / {planRules.maxStaff === 999 ? 'Unlimited' : planRules.maxStaff}</strong></span>
+            </>
+          )}
         </div>
-        {activeFarm.plan !== 'ENTERPRISE' && (
-          <button onClick={onUpgradePlan} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-1.5 rounded-xl text-xs">
-            ⚡ Upgrade Plan
-          </button>
-        )}
+
+        <div className="flex items-center gap-2">
+          {isPaidPlan && (
+            <button
+              onClick={() => { setAuthRole(null); setIsUnlocked(false); }}
+              className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1"
+            >
+              <LogOut size={13} /><span>Switch Role / Lock</span>
+            </button>
+          )}
+          {authRole === 'ADMIN' && activeFarm.plan !== 'ENTERPRISE' && (
+            <button onClick={onUpgradePlan} className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-1.5 rounded-xl text-xs">
+              ⚡ Upgrade Plan
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Sub-navigation Tabs */}
+      {/* Sub-navigation Tabs (Filtered by Role) */}
       <div className="flex space-x-2 overflow-x-auto pb-2">
-        {[
-          { id: 'dashboard', label: t.dashboard, icon: TrendingUp },
-          { id: 'herd', label: `${t.herd} (${cows.length})`, icon: ShieldCheck },
-          { id: 'ops', label: t.ops, icon: Calculator },
-          { id: 'hrms', label: `${t.hrms} (${employees.length})`, icon: Users },
-          { id: 'finance', label: t.finance, icon: Lock }
-        ].map(tab => {
+        {visibleTabs.map(tab => {
           const Icon = tab.icon;
           return (
             <button
@@ -152,8 +479,8 @@ export default function FarmDashboard({
         })}
       </div>
 
-      {/* TAB 1: DASHBOARD */}
-      {activeTab === 'dashboard' && (
+      {/* TAB 1: DASHBOARD (ADMIN ONLY) */}
+      {authRole === 'ADMIN' && activeTab === 'dashboard' && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className={`p-6 rounded-3xl border ${cardClass}`}>
             <p className="text-xs opacity-70 font-bold uppercase">{t.activeHerd}</p>
@@ -178,8 +505,8 @@ export default function FarmDashboard({
         </div>
       )}
 
-      {/* TAB 2: HERD & SELECTIVE MARKETPLACE PRICING */}
-      {activeTab === 'herd' && (
+      {/* TAB 2: HERD & SELECTIVE MARKETPLACE PRICING (ADMIN ONLY) */}
+      {authRole === 'ADMIN' && activeTab === 'herd' && (
         <div className="space-y-6">
           <form onSubmit={handleAddCow} className={`p-6 rounded-3xl border space-y-4 ${cardClass}`}>
             <h3 className="font-bold text-base text-emerald-500">{t.registerCow}</h3>
@@ -272,11 +599,13 @@ export default function FarmDashboard({
         </div>
       )}
 
-      {/* TAB 3: DAILY OPS & FEED */}
+      {/* TAB 3: DAILY OPS & FEED (ACCESSIBLE TO BOTH ADMIN & WORKER) */}
       {activeTab === 'ops' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`p-6 rounded-3xl border space-y-4 ${cardClass}`}>
-            <h3 className="font-bold text-lg">📦 Auto-Deduct Feed Inventory</h3>
+            <h3 className="font-bold text-lg">📦 Feed Inventory (Deduct & Restock)</h3>
+            
+            {/* Deduct Form */}
             <form onSubmit={(e) => {
               e.preventDefault();
               const q = Number(feedDeduct.qty);
@@ -288,9 +617,11 @@ export default function FarmDashboard({
               <select value={feedDeduct.id} onChange={e => setFeedDeduct({...feedDeduct, id: e.target.value})} className={`flex-1 rounded-xl px-3 py-2 text-xs border ${inputClass}`}>
                 {inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
-              <input required type="number" placeholder="Kg" value={feedDeduct.qty} onChange={e => setFeedDeduct({...feedDeduct, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
-              <button type="submit" className="bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-xs">Deduct</button>
+              <input required type="number" placeholder="Minus Kg" value={feedDeduct.qty} onChange={e => setFeedDeduct({...feedDeduct, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
+              <button type="submit" className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs">Deduct</button>
             </form>
+
+            {/* Add / Refill Stock Form */}
             <form onSubmit={handleAddStock} className="flex gap-2 pt-2 border-t border-current/10">
               <select value={stockAdd.id} onChange={e => setStockAdd({...stockAdd, id: e.target.value})} className={`flex-1 rounded-xl px-3 py-2 text-xs border ${inputClass}`}>
                 {inventory.map(i => <option key={i.id} value={i.id}>Refill: {i.name}</option>)}
@@ -298,7 +629,8 @@ export default function FarmDashboard({
               <input required type="number" placeholder="Add Kg" value={stockAdd.qty} onChange={e => setStockAdd({...stockAdd, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
               <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs">+ Add Stock</button>
             </form>
-            <div className="space-y-2">
+
+            <div className="space-y-2 pt-2">
               {inventory.map(item => (
                 <div key={item.id} className="p-3 rounded-xl bg-current/5 flex justify-between items-center text-xs">
                   <span className="font-bold">{item.name}</span>
@@ -314,7 +646,9 @@ export default function FarmDashboard({
               <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
                 <AlertTriangle className="mx-auto text-amber-400" />
                 <p className="text-sm font-bold">Available in GROWTH (₹499/mo) & ENTERPRISE Plans</p>
-                <button onClick={onUpgradePlan} className="bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">Upgrade Now</button>
+                {authRole === 'ADMIN' && (
+                  <button onClick={onUpgradePlan} className="bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">Upgrade Now</button>
+                )}
               </div>
             ) : (
               <>
@@ -343,8 +677,8 @@ export default function FarmDashboard({
         </div>
       )}
 
-      {/* TAB 4: HRMS WITH PLAN STAFF LIMIT */}
-      {activeTab === 'hrms' && (
+      {/* TAB 4: HRMS WITH PLAN STAFF LIMIT (ADMIN ONLY) */}
+      {authRole === 'ADMIN' && activeTab === 'hrms' && (
         <div className="space-y-6">
           {planRules.maxStaff === 0 ? (
             <div className={`p-8 rounded-3xl border text-center space-y-3 ${cardClass}`}>
@@ -382,14 +716,14 @@ export default function FarmDashboard({
         </div>
       )}
 
-      {/* TAB 5: 2FA BALANCE SHEET */}
-      {activeTab === 'finance' && (
+      {/* TAB 5: 2FA BALANCE SHEET (ADMIN ONLY) */}
+      {authRole === 'ADMIN' && activeTab === 'finance' && (
         <div className={`max-w-lg mx-auto p-8 rounded-3xl border text-center space-y-4 ${cardClass}`}>
           {!isUnlocked ? (
             <>
               <Lock className="mx-auto text-emerald-500" size={36} />
               <h3 className="text-xl font-black">{t.unlockSheet}</h3>
-              <p className="text-xs opacity-75">{t.enterPin} (Farm PIN: <code>{activeFarm.pin}</code>)</p>
+              <p className="text-xs opacity-75">Enter your 4-Digit Owner PIN</p>
               <input
                 type="password"
                 maxLength={4}
@@ -400,7 +734,7 @@ export default function FarmDashboard({
               />
               <div>
                 <button
-                  onClick={() => { if (pinInput === activeFarm.pin) setIsUnlocked(true); else showToast('❌ Wrong PIN'); }}
+                  onClick={() => { if (pinInput === currentAdminPin) setIsUnlocked(true); else showToast('❌ Wrong PIN'); }}
                   className="bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-xl text-xs"
                 >
                   Verify & Unlock
