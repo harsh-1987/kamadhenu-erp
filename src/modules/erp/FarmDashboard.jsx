@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, ShieldCheck, Calculator, Users, Lock,
-  Plus, Trash2, Eye, EyeOff, AlertTriangle, KeyRound, LogOut, Smartphone, RefreshCw
+  Plus, Trash2, Eye, EyeOff, AlertTriangle, KeyRound, LogOut, Smartphone, RefreshCw, Wheat, Sparkles
 } from 'lucide-react';
 import { PLAN_LIMITS } from '../../data/translations';
+import FeedAdvisor from './FeedAdvisor';
 
 export default function FarmDashboard({
   activeFarm, updateFarmCows, t, cardClass, inputClass, showToast, onUpgradePlan
@@ -416,6 +417,7 @@ export default function FarmDashboard({
     ? [{ id: 'ops', label: t.ops, icon: Calculator }]
     : [
         { id: 'dashboard', label: t.dashboard, icon: TrendingUp },
+        { id: 'feedadvisor', label: '🌾 Cow Diet & Ration', icon: Wheat },
         { id: 'herd', label: `${t.herd} (${cows.length})`, icon: ShieldCheck },
         { id: 'ops', label: t.ops, icon: Calculator },
         { id: 'hrms', label: `${t.hrms} (${employees.length})`, icon: Users },
@@ -715,8 +717,11 @@ export default function FarmDashboard({
           )}
         </div>
       )}
-
-      {/* TAB 5: 2FA BALANCE SHEET (ADMIN ONLY) */}
+    {/* TAB 5: Cow Diet & Ration Calculator Tab View */}
+      {activeTab === 'feedadvisor' && (
+        <FeedAdvisor cardClass={cardClass} inputClass={inputClass} />
+      )}
+      {/* TAB 6: 2FA BALANCE SHEET (ADMIN ONLY) */}
       {authRole === 'ADMIN' && activeTab === 'finance' && (
         <div className={`max-w-lg mx-auto p-8 rounded-3xl border text-center space-y-4 ${cardClass}`}>
           {!isUnlocked ? (
