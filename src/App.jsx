@@ -13,7 +13,8 @@ export default function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'register' | 'app' | 'marketplace' | 'superadmin'
   const [selectedPlanForReg, setSelectedPlanForReg] = useState('GROWTH');
   const [toast, setToast] = useState('');
-// --- Cross-Country / International Currency Detection ---
+
+  // --- Cross-Country / International Currency Detection ---
   const [isInternational, setIsInternational] = useState(false);
 
   useEffect(() => {
@@ -28,11 +29,12 @@ export default function App() {
   const formatPlanPrice = (inrPrice) => {
     if (inrPrice === 0) return isInternational ? '$0/mo' : '₹0/mo';
     if (isInternational) {
-      const usdMap = { 299: 10, 499: 20, 999: 35 };
+      const usdMap = { 249: 5, 499: 10, 999: 20 };
       return `$${usdMap[inrPrice] || Math.ceil(inrPrice / 50)}/mo`;
     }
     return `₹${inrPrice}/mo`;
   };
+
   // Multi-Tenant Farms Database in localStorage
   const [farms, setFarms] = useState(() => {
     const saved = localStorage.getItem('kamadhenu_multi_farms_v2');
@@ -149,19 +151,19 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
                 {
-                  key: 'FREE', title: t.freeTier, price: '₹0/mo',
+                  key: 'FREE', title: t.freeTier, price: formatPlanPrice(0), rawPrice: 0,
                   features: ['Up to 3 Cows', 'Basic Herd Ledger', '❌ No HRMS Staff', '❌ No Marketplace Listing']
                 },
                 {
-                  key: 'STARTER', title: t.starterTier, price: '₹249/mo',
+                  key: 'STARTER', title: t.starterTier, price: formatPlanPrice(249), rawPrice: 249,
                   features: ['Up to 7 Cows', 'HRMS Limit: 1–2 Staff', 'Public Breed Listing', 'Optional Price Hiding']
                 },
                 {
-                  key: 'GROWTH', title: t.growthTier, price: '₹499/mo', popular: true,
+                  key: 'GROWTH', title: t.growthTier, price: formatPlanPrice(499), rawPrice: 499, popular: true,
                   features: ['Up to 20 Cows', 'Unlimited HRMS Staff', 'Dahi, Makhan & Ghee Log', '2FA Encrypted Balance Sheet']
                 },
                 {
-                  key: 'ENTERPRISE', title: t.enterpriseTier, price: '₹999/mo',
+                  key: 'ENTERPRISE', title: t.enterpriseTier, price: formatPlanPrice(999), rawPrice: 999,
                   features: ['Unlimited Cows & Farms', 'Unlimited Staff & Fleet', 'Top Marketplace Priority', 'Dedicated Razorpay Payouts']
                 }
               ].map(plan => (
@@ -223,21 +225,25 @@ export default function App() {
       {/* 5. TENANT FARM ERP WORKSPACE */}
       {currentView === 'app' && (
         <div>
-          {/* Tenant Farm Switcher Bar for Demo / Pitching */}
-          <div className="max-w-7xl mx-auto px-6 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center space-x-2">
-              <span className="opacity-70 font-bold">Active Farm Workspace:</span>
-              <select
-                value={activeFarmId}
-                onChange={e => setActiveFarmId(e.target.value)}
-                className={`rounded-xl px-3 py-1.5 border font-bold ${inputClass}`}
-              >
-                {farms.map(f => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.plan})</option>
-                ))}
-              </select>
+          {/* ========================================================================= */}
+          {/* === [SECURITY PATCH] : ड्रॉपडाउन हटाकर सिर्फ सिक्योर स्टैटिक फार्म नेम बैनर === */}
+          {/* ========================================================================= */}
+          <div className="max-w-7xl mx-auto px-6 pt-4">
+            <div className="bg-emerald-600/10 border border-emerald-500/30 px-5 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="font-bold opacity-75">Active Secure Workspace:</span>
+                <span className="font-black text-emerald-400 text-sm">{activeFarm.name}</span>
+                <span className="bg-emerald-500/20 text-emerald-400 font-bold px-2.5 py-0.5 rounded-full">
+                  {activeFarm.plan} PLAN
+                </span>
+              </div>
+              <div className="opacity-75 text-[11px] font-medium">
+                📍 Location: <strong>{activeFarm.location}</strong> • Phone: <strong>{activeFarm.phone}</strong>
+              </div>
             </div>
           </div>
+          {/* ========================================================================= */}
 
           <FarmDashboard
             activeFarm={activeFarm}
