@@ -11,11 +11,14 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
     email: '',
     location: 'Raipur, Chhattisgarh',
     plan: selectedPlan || 'GROWTH',
-    pin: '1234',
-    workerPin: '0000' // Staff / Worker login PIN for paid tiers
+    pin: '',        // Blank by default so user doesn't need to backspace
+    workerPin: ''   // Blank by default
   });
 
-  // OTP States (15-minute = 900 seconds validity)
+  const [phoneError, setPhoneError] = useState('');
+  const [nameError, setNameError] = useState('');
+
+  // OTP States
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
   const [timeLeft, setTimeLeft] = useState(900);
@@ -34,11 +37,47 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // 1. Name Field Validation (Only alphabets and spaces allowed, NO numbers)
+  const handleNameChange = (e, field) => {
+    const val = e.target.value;
+    if (/[0-9]/.test(val)) {
+      setNameError('Numbers are not allowed in names!');
+    } else {
+      setNameError('');
+    }
+    setFormData({ ...formData, [field]: val });
+  };
+
+  // 2. Phone Number Validation (Strictly digits, exactly 10 digits for India +91)
+  const handlePhoneChange = (e) => {
+    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setFormData({ ...formData, phone: cleaned });
+
+    if (cleaned.length > 0 && cleaned.length < 10) {
+      setPhoneError('Phone number must be exactly 10 digits.');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   const handleSendOtp = (e) => {
     e.preventDefault();
+    if (formData.phone.length !== 10) {
+      setPhoneError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (/[0-9]/.test(formData.owner) || /[0-9]/.test(formData.name)) {
+      setNameError('Name cannot contain numbers.');
+      return;
+    }
+    if (!formData.pin || formData.pin.length !== 4) {
+      alert('Please enter a valid 4-digit Owner PIN.');
+      return;
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(code);
-    setTimeLeft(900); // 15 minutes
+    setTimeLeft(900);
     setOtpError('');
     setStep(2);
   };
@@ -74,12 +113,12 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
       id: 'farm-' + Date.now(),
       name: formData.name,
       owner: formData.owner,
-      phone: formData.phone,
+      phone: `+91 ${formData.phone}`, // Automatically prefix +91 country code
       email: formData.email,
       location: formData.location,
       plan: formData.plan,
       pin: formData.pin,
-      workerPin: formData.plan !== 'FREE' ? formData.workerPin : null, // Store worker pin if paid plan
+      workerPin: formData.plan !== 'FREE' ? (formData.workerPin || '0000') : null,
       joinedDate: new Date().toISOString().split('T')[0],
       status: 'Active',
       paymentId,
@@ -122,7 +161,8 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold mb-1">Owner Full Name *</label>
-                <input required type="text" placeholder="Ramesh Verma" value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
+                <input required type="text" placeholder="Ramesh Verma" value={formData.owner} onChange={e => handleNameChange(e, 'owner')} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
+                {nameError && <p className="text-[10px] text-rose-400 font-bold mt-1">{nameError}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1">City & State *</label>
@@ -132,11 +172,23 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold mb-1">Mobile Number (for OTP) *</label>
-                <input required type="tel" placeholder="+91 98261 XXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
+                <label className="block text-xs font-bold mb-1">Mobile Number (+91 Default) *</label>
+                <div className="flex">
+                  <span className="bg-emerald-600/20 border border-r-0 border-current/20 rounded-l-xl px-3 flex items-center text-xs font-bold text-emerald-400">+91</span>
+                  <input
+                    required
+                    type="tel"
+                    maxLength={10}
+                    placeholder="9826145001"
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
+                    className={`w-full rounded-r-xl px-4 py-2.5 border font-mono ${inputClass}`}
+                  />
+                </div>
+                {phoneError && <p className="text-[10px] text-rose-400 font-bold mt-1">{phoneError}</p>}
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1">Email ID (for OTP) </label>
+                <label className="block text-xs font-bold mb-1">Email ID (Optional)</label>
                 <input type="email" placeholder="owner@dairyfarm.in" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
               </div>
             </div>
@@ -153,18 +205,33 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1">Set 4-Digit Owner 2FA PIN *</label>
-                <input required maxLength={4} type="text" value={formData.pin} onChange={e => setFormData({...formData, pin: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border font-mono text-center tracking-widest ${inputClass}`} />
+                <input
+                  required
+                  maxLength={4}
+                  type="text"
+                  placeholder="e.g. 5678"
+                  value={formData.pin}
+                  onChange={e => setFormData({...formData, pin: e.target.value.replace(/\D/g, '').slice(0, 4)})}
+                  className={`w-full rounded-xl px-4 py-2.5 border font-mono text-center tracking-widest ${inputClass}`}
+                />
               </div>
             </div>
 
-            {/* Conditionally show Worker PIN field for paid plans (> ₹0) */}
+            {/* Conditionally show Worker PIN field for paid plans */}
             {formData.plan !== 'FREE' && (
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
                 <label className="block text-xs font-bold text-amber-400 flex items-center gap-1">
                   <Users size={14} /> Set Staff / Worker Login PIN (Data Entry Only) *
                 </label>
-                <p className="text-[11px] opacity-75">Workers can use this PIN to log in and update feed/milk without seeing financial profit/balance sheet.</p>
-                <input required maxLength={4} type="text" placeholder="0000" value={formData.workerPin} onChange={e => setFormData({...formData, workerPin: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border font-mono text-center tracking-widest ${inputClass}`} />
+                <input
+                  required
+                  maxLength={4}
+                  type="text"
+                  placeholder="e.g. 1122"
+                  value={formData.workerPin}
+                  onChange={e => setFormData({...formData, workerPin: e.target.value.replace(/\D/g, '').slice(0, 4)})}
+                  className={`w-full rounded-xl px-4 py-2.5 border font-mono text-center tracking-widest ${inputClass}`}
+                />
               </div>
             )}
 
@@ -174,12 +241,12 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
           </form>
         )}
 
-        {/* STEP 2: OTP VERIFICATION (15 MIN VALIDITY) */}
+        {/* STEP 2: OTP VERIFICATION */}
         {step === 2 && (
           <form onSubmit={handleVerifyOtp} className="space-y-5 text-center">
             <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl text-xs space-y-1">
               <p className="font-bold text-emerald-400 flex items-center justify-center gap-1">
-                <Smartphone size={14} /> <Mail size={14} /> OTP Dispatched to {formData.phone} & {formData.email || 'N/A'}
+                <Smartphone size={14} /> OTP Dispatched to +91 {formData.phone}
               </p>
               <p className="opacity-80">Demo Live OTP Code: <span className="font-mono font-black text-base text-amber-400 bg-slate-950 px-2 py-0.5 rounded">{generatedOtp}</span></p>
             </div>
@@ -214,7 +281,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
           </form>
         )}
 
-        {/* STEP 3: RAZORPAY CHECKOUT POPUP SIMULATION */}
+        {/* STEP 3: RAZORPAY CHECKOUT */}
         {step === 3 && (
           <div className="space-y-5">
             <div className="bg-sky-950/60 border border-sky-700/50 p-5 rounded-2xl">
@@ -229,16 +296,9 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
                 </div>
               </div>
               <div className="pt-3 text-xs text-slate-300 space-y-1">
-                <p>✓ Merchant: <strong>Kamadhenu AgriTech SaaS (Owner Master Account)</strong></p>
-                <p>✓ Instant UPI / Card / NetBanking Settlement</p>
-                <p>✓ Farm: {formData.name} ({formData.phone})</p>
+                <p>✓ Merchant: <strong>Kamadhenu AgriTech SaaS</strong></p>
+                <p>✓ Farm: {formData.name} (+91 {formData.phone})</p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
-              <div className="p-3 rounded-xl border border-emerald-500 bg-emerald-500/10 text-emerald-400">UPI / QR Code</div>
-              <div className="p-3 rounded-xl border border-current/20 opacity-75">Debit / Credit Card</div>
-              <div className="p-3 rounded-xl border border-current/20 opacity-75">NetBanking</div>
             </div>
 
             <button
@@ -247,7 +307,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
               className="w-full bg-sky-600 hover:bg-sky-500 text-white font-black py-4 rounded-xl shadow-xl flex items-center justify-center space-x-2 transition"
             >
               <CreditCard size={18} />
-              <span>{isPaying ? 'Processing via Razorpay Gateway...' : `Pay ₹{planObj.price} Now via UPI / Razorpay`}</span>
+              <span>{isPaying ? 'Processing via Razorpay...' : `Pay ₹{planObj.price} Now via UPI / Razorpay`}</span>
             </button>
           </div>
         )}
