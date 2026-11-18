@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Smartphone, Mail, Clock, CreditCard, CheckCircle, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, Smartphone, Mail, Clock, CreditCard, CheckCircle, ArrowLeft, Users } from 'lucide-react';
 import { PLAN_LIMITS } from '../../data/translations';
 
 export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, cardClass, inputClass }) {
@@ -11,7 +11,8 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
     email: '',
     location: 'Raipur, Chhattisgarh',
     plan: selectedPlan || 'GROWTH',
-    pin: '1234'
+    pin: '1234',
+    workerPin: '0000' // Staff / Worker login PIN for paid tiers
   });
 
   // OTP States (15-minute = 900 seconds validity)
@@ -78,10 +79,13 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
       location: formData.location,
       plan: formData.plan,
       pin: formData.pin,
+      workerPin: formData.plan !== 'FREE' ? formData.workerPin : null, // Store worker pin if paid plan
       joinedDate: new Date().toISOString().split('T')[0],
       status: 'Active',
       paymentId,
-      cows: []
+      cows: [],
+      customers: [],
+      employees: []
     };
     onSuccess(newFarm);
   };
@@ -133,7 +137,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1">Email ID (for OTP) </label>
-                <input  type="email" placeholder="owner@dairyfarm.in" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
+                <input type="email" placeholder="owner@dairyfarm.in" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border ${inputClass}`} />
               </div>
             </div>
 
@@ -148,10 +152,21 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1">Set 4-Digit 2FA PIN *</label>
+                <label className="block text-xs font-bold mb-1">Set 4-Digit Owner 2FA PIN *</label>
                 <input required maxLength={4} type="text" value={formData.pin} onChange={e => setFormData({...formData, pin: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border font-mono text-center tracking-widest ${inputClass}`} />
               </div>
             </div>
+
+            {/* Conditionally show Worker PIN field for paid plans (> ₹0) */}
+            {formData.plan !== 'FREE' && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                <label className="block text-xs font-bold text-amber-400 flex items-center gap-1">
+                  <Users size={14} /> Set Staff / Worker Login PIN (Data Entry Only) *
+                </label>
+                <p className="text-[11px] opacity-75">Workers can use this PIN to log in and update feed/milk without seeing financial profit/balance sheet.</p>
+                <input required maxLength={4} type="text" placeholder="0000" value={formData.workerPin} onChange={e => setFormData({...formData, workerPin: e.target.value})} className={`w-full rounded-xl px-4 py-2.5 border font-mono text-center tracking-widest ${inputClass}`} />
+              </div>
+            )}
 
             <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl shadow-lg mt-2 transition">
               Send Verification OTP →
@@ -164,7 +179,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
           <form onSubmit={handleVerifyOtp} className="space-y-5 text-center">
             <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl text-xs space-y-1">
               <p className="font-bold text-emerald-400 flex items-center justify-center gap-1">
-                <Smartphone size={14} /> <Mail size={14} /> OTP Dispatched to {formData.phone} & {formData.email}
+                <Smartphone size={14} /> <Mail size={14} /> OTP Dispatched to {formData.phone} & {formData.email || 'N/A'}
               </p>
               <p className="opacity-80">Demo Live OTP Code: <span className="font-mono font-black text-base text-amber-400 bg-slate-950 px-2 py-0.5 rounded">{generatedOtp}</span></p>
             </div>
@@ -232,7 +247,7 @@ export default function RegistrationModal({ selectedPlan, onSuccess, onCancel, c
               className="w-full bg-sky-600 hover:bg-sky-500 text-white font-black py-4 rounded-xl shadow-xl flex items-center justify-center space-x-2 transition"
             >
               <CreditCard size={18} />
-              <span>{isPaying ? 'Processing via Razorpay Gateway...' : `Pay ₹${planObj.price} Now via UPI / Razorpay`}</span>
+              <span>{isPaying ? 'Processing via Razorpay Gateway...' : `Pay ₹{planObj.price} Now via UPI / Razorpay`}</span>
             </button>
           </div>
         )}
