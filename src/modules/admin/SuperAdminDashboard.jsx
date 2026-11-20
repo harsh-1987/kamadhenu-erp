@@ -42,6 +42,16 @@ export default function SuperAdminDashboard({ farms, setFarms, cardClass, inputC
   const toggleFarmStatus = (id) => {
     setFarms(farms.map(f => f.id === id ? { ...f, status: f.status === 'Active' ? 'Suspended' : 'Active' } : f));
   };
+  // Handle delete farm 
+  const handleDeleteFarm = (farmId) => {
+  const updated = farms.filter((f) => f.id !== farmId);
+  setFarms(updated);
+  localStorage.setItem('kamadhenu_multi_farms_v2', JSON.stringify(updated));
+  if (activeFarm?.id === farmId) {
+    setActiveFarm(updated[0] || null);
+  }
+  showToast('🗑️ Farm permanently deleted!');
+};
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
@@ -114,6 +124,18 @@ export default function SuperAdminDashboard({ farms, setFarms, cardClass, inputC
                   >
                     {farm.status === 'Active' ? 'Suspend' : 'Activate'}
                   </button>
+                 // delete button action 
+                  <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to permanently delete "${farm.name}"?`)) {
+                      handleDeleteFarm(farm.id);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white font-bold text-xs transition"
+                >
+                  Delete
+                </button>
                 </td>
               </tr>
             ))}
