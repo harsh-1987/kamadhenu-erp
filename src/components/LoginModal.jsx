@@ -51,7 +51,7 @@ export default function LoginModal({
       showToast?.(`❌ Incorrect ${roleType === 'ADMIN' ? 'Owner' : 'Worker'} PIN!`);
       return;
     }
-
+    console.log('LOGIN MATCHED:', matchedFarm, roleType);
     onLoginSuccess(matchedFarm, roleType);
   };
 
