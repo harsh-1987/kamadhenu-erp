@@ -45,6 +45,7 @@ export default function App() {
   const [activeFarmId, setActiveFarmId] = useState(() => {
     return localStorage.getItem('kamadhenu_active_farm_id') || INITIAL_FARMS[0].id;
   });
+  const [loginRole, setLoginRole] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('kamadhenu_multi_farms_v2', JSON.stringify(farms));
@@ -266,6 +267,7 @@ export default function App() {
             activeFarm={activeFarm}
             updateFarmCows={updateActiveFarmCows}
             t={t}
+            initialRole={loginRole}
             cardClass={cardClass}
             inputClass={inputClass}
             showToast={showToast}
