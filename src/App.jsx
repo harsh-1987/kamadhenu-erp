@@ -222,21 +222,23 @@ export default function App() {
           onBack={() => setCurrentView('landing')}
         />
       )}
-      {currentView === 'login' && (
-      <LoginModal
-        farms={farms}
-        onLoginSuccess={(farm, role) => {
-          setActiveFarm(farm);
-          setCurrentView('app');
-          showToast?.(`Welcome back to ${farm.name}!`);
-        }}
-        onGoToRegister={() => setCurrentView('register')}
-        onCancel={() => setCurrentView('landing')}
-        cardClass={cardClass}
-        inputClass={inputClass}
-        showToast={showToast}
-      />
-    )}
+            {currentView === 'login' && (
+        <LoginModal
+          farms={farms}
+          onLoginSuccess={(farm, role) => {
+            setActiveFarm(farm);
+            setCurrentView('app');
+            if (typeof showToast === 'function') {
+              showToast(`Welcome back to ${farm.name}!`);
+            }
+          }}
+          onGoToRegister={() => setCurrentView('register')}
+          onCancel={() => setCurrentView('landing')}
+          cardClass={cardClass}
+          inputClass={inputClass}
+          showToast={showToast}
+        />
+      )}
       {/* 5. TENANT FARM ERP WORKSPACE */}
       {currentView === 'app' && (
         <div>
