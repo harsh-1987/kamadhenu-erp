@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Sun, Moon, Trees, Shield } from 'lucide-react';
+import { Globe, Sun, Moon, Trees, Shield, LogIn } from 'lucide-react';
 
 export default function Navbar({
   t, lang, setLang, theme, setTheme,
@@ -35,6 +35,7 @@ export default function Navbar({
       <div className="flex flex-wrap items-center gap-2.5">
         {/* Marketplace Quick Link */}
         <button
+          type="button"
           onClick={() => setCurrentView('marketplace')}
           className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
             currentView === 'marketplace'
@@ -47,6 +48,7 @@ export default function Navbar({
 
         {/* Theme Switcher */}
         <button
+          type="button"
           onClick={cycleTheme}
           title="Switch Theme (Dark / Light / Farm Green)"
           className="p-2 rounded-xl border border-current/20 hover:bg-current/10 transition flex items-center space-x-1 text-xs font-bold"
@@ -58,6 +60,7 @@ export default function Navbar({
 
         {/* Language Toggle */}
         <button
+          type="button"
           onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
           className="px-3 py-1.5 rounded-xl border border-current/20 hover:bg-current/10 text-xs font-bold flex items-center space-x-1"
         >
@@ -67,6 +70,7 @@ export default function Navbar({
 
         {/* Super Admin Portal */}
         <button
+          type="button"
           onClick={() => setCurrentView('superadmin')}
           className="px-3 py-1.5 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 text-xs font-bold flex items-center space-x-1"
         >
@@ -74,22 +78,27 @@ export default function Navbar({
           <span>{t.superAdminBtn}</span>
         </button>
 
+        {/* Login CTA */}
+        {currentView !== 'login' && (
+          <button
+            type="button"
+            onClick={() => setCurrentView('login')}
+            className="px-4 py-1.5 rounded-xl border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 text-xs font-black flex items-center gap-1.5 transition"
+          >
+            <LogIn size={14} />
+            <span>{t.loginBtn || 'Login'}</span>
+          </button>
+        )}
+
         {/* Enroll CTA */}
         {currentView !== 'register' && (
           <button
+            type="button"
             onClick={() => setCurrentView('register')}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-lg transition"
           >
             + {t.enrollBtn}
           </button>
-      {/* Login button */}
-          <button
-      type="button"
-      onClick={() => setView('login')}
-      className="px-4 py-2 rounded-xl border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 text-xs font-black transition"
-    >
-      Login
-    </button>
         )}
       </div>
     </header>
