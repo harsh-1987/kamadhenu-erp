@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, Smartphone, ArrowLeft, LogIn } from 'lucide-react';
+import { KeyRound, ArrowLeft, LogIn } from 'lucide-react';
 
 export default function LoginModal({
   farms = [],
@@ -56,8 +56,8 @@ export default function LoginModal({
   };
 
   return (
-    <div className="max-w-md mx-auto my-12 px-4">
-      <div className={`p-8 rounded-3xl border shadow-2xl space-y-6 ${cardClass}`}>
+    <div className="w-full max-w-md mx-auto my-10 px-4">
+      <div className={`p-7 rounded-3xl border shadow-2xl space-y-6 ${cardClass}`}>
         <button
           type="button"
           onClick={onCancel}
@@ -76,28 +76,6 @@ export default function LoginModal({
             Sign in with your registered mobile number & 4-digit PIN
           </p>
         </div>
-
-        {/* Quick Demo / Registered Farm Hint for Fast Testing */}
-        {farms.length > 0 && (
-          <div className="p-3 rounded-2xl bg-current/5 border border-current/10 text-[11px] space-y-1">
-            <p className="font-bold opacity-80">Registered Farms (Click to fill mobile):</p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {farms.map((f) => {
-                const digits = String(f.phone || '').replace(/\D/g, '').slice(-10);
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setPhoneInput(digits)}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 font-mono text-[10px] font-bold transition"
-                  >
-                    {f.name} ({digits || 'N/A'})
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         <form onSubmit={handleLoginSubmit} className="space-y-4 text-sm">
           {/* Role Selector */}
