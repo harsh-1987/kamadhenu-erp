@@ -82,10 +82,10 @@ export default function Navbar({
           >
             + {t.enrollBtn}
           </button>
-      // Login button
+      {/* Login button */}
           <button
       type="button"
-      onClick={() => setView('login')} // या जो भी स्टेट/मोडल तू व्यू बदलने के लिए यूज़ करता है
+      onClick={() => setView('login')}
       className="px-4 py-2 rounded-xl border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 text-xs font-black transition"
     >
       Login
