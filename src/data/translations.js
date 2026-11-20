@@ -40,7 +40,7 @@ export const translations = {
     allLocations: "All Locations",
     allBreeds: "All Breeds",
     unlockSheet: "Unlock 2FA Balance Sheet",
-    enterPin: "Enter 4-Digit Owner PIN"
+    enterPin: "Enter 4-Digit Owner PIN",
     cowDietTab: 'Cow Diet & Ration',
     feedInventoryTitle: 'Feed Inventory (Deduct & Restock)',
     minusKgPlaceholder: 'Minus Kg',
@@ -112,7 +112,7 @@ export const translations = {
     allLocations: "सभी शहर",
     allBreeds: "सभी नस्लें",
     unlockSheet: "2FA बैलेंस शीट अनलॉक करें",
-    enterPin: "4-अंकों का ओनर PIN डालें"
+    enterPin: "4-अंकों का ओनर PIN डालें",
     cowDietTab: 'गाय आहार व राशन',
     feedInventoryTitle: 'चारा व फीड स्टॉक (घटाएं और जोड़ें)',
     minusKgPlaceholder: 'घटाएं (Kg)',
