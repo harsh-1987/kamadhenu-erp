@@ -17,7 +17,7 @@ export default function FarmDashboard({
   // =========================================================================
   // === [SECURITY] : Role Gate, 5-Attempt Lockout & PIN Reset ===============
   // =========================================================================
-  const [authRole, setAuthRole] = useState( initialRole || (isPaidPlan ? null : 'ADMIN');
+  const [authRole, setAuthRole] = useState( initialRole || (isPaidPlan ? null : 'ADMIN'));
   const [loginRoleSelect, setLoginRoleSelect] = useState('ADMIN');
   const [loginPinInput, setLoginPinInput] = useState('');
 
@@ -34,7 +34,7 @@ export default function FarmDashboard({
   const [newWorkerPin, setNewWorkerPin] = useState('');
 
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [authRole, setAuthRole] = useState(isPaidPlan ? null : 'ADMIN');
+  const [authRole, setAuthRole] = useState( initialRole || (isPaidPlan ? null : 'ADMIN'));
   useEffect(() => {
     setCurrentAdminPin(activeFarm.pin || '1234');
     setCurrentWorkerPin(activeFarm.workerPin || '0000');
@@ -44,11 +44,14 @@ export default function FarmDashboard({
     setLoginPinInput('');
     if (activeFarm.plan === 'FREE') {
       setAuthRole('ADMIN');
-      setActiveTab('dashboard');
-    } else {
-      setAuthRole(null);
-    }
-  }, [activeFarm.id, activeFarm.plan]);
+    setActiveTab('dashboard');
+  } else if (initialRole) {
+    setAuthRole(initialRole);
+    setActiveTab(initialRole === 'WORKER' ? 'ops' : 'dashboard');
+  } else {
+    setAuthRole(null);
+  }
+}, [activeFarm.id, activeFarm.plan, initialRole]);
 
   useEffect(() => {
     if (lockoutSeconds <= 0) return;
