@@ -222,11 +222,13 @@ export default function App() {
           onBack={() => setCurrentView('landing')}
         />
       )}
-            {currentView === 'login' && (
+       {/* Login View  */}   
+      {currentView === 'login' && (
         <LoginModal
           farms={farms}
           onLoginSuccess={(farm, role) => {
-            setActiveFarm(farm);
+            setActiveFarm(farm.id);
+            setLoginRole(role);
             setCurrentView('app');
             if (typeof showToast === 'function') {
               showToast(`Welcome back to ${farm.name}!`);
