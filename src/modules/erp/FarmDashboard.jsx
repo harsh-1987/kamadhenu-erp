@@ -17,7 +17,7 @@ export default function FarmDashboard({
   // =========================================================================
   // === [SECURITY] : Role Gate, 5-Attempt Lockout & PIN Reset ===============
   // =========================================================================
-  const [authRole, setAuthRole] = useState( initialRole || (isPaidPlan ? null : 'ADMIN'));
+  const [authRole, setAuthRole] = useState(isPaidPlan ? null : 'ADMIN');
   const [loginRoleSelect, setLoginRoleSelect] = useState('ADMIN');
   const [loginPinInput, setLoginPinInput] = useState('');
 
