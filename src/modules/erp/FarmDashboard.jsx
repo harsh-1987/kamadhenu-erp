@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, ShieldCheck, Calculator, Users, Lock,
-  Plus, Trash2, Eye, EyeOff, AlertTriangle, KeyRound, LogOut, Smartphone, RefreshCw, Wheat, Sparkles
+  Plus, Trash2, Eye, EyeOff, AlertTriangle, KeyRound, LogOut, Smartphone, RefreshCw, Wheat, Calendar
 } from 'lucide-react';
 import { PLAN_LIMITS } from '../../data/translations';
 import FeedAdvisor from './FeedAdvisor';
@@ -12,23 +12,21 @@ export default function FarmDashboard({
   const planRules = PLAN_LIMITS[activeFarm.plan] || PLAN_LIMITS.FREE;
   const isPaidPlan = activeFarm.plan !== 'FREE';
   const cows = activeFarm.cows || [];
+  const todayStr = new Date().toISOString().split('T')[0];
 
   // =========================================================================
-  // === [SECURITY PATCH 1 START] : Role Gate, 5-Attempt Lockout & PIN Reset ===
+  // === [SECURITY] : Role Gate, 5-Attempt Lockout & PIN Reset ===============
   // =========================================================================
-  const [authRole, setAuthRole] = useState(isPaidPlan ? null : 'ADMIN'); // 'ADMIN' | 'WORKER' | null (Locked)
+  const [authRole, setAuthRole] = useState(isPaidPlan ? null : 'ADMIN');
   const [loginRoleSelect, setLoginRoleSelect] = useState('ADMIN');
   const [loginPinInput, setLoginPinInput] = useState('');
 
-  // Dynamic PINs (initialized from farm, updatable via Forgot PIN OTP)
   const [currentAdminPin, setCurrentAdminPin] = useState(activeFarm.pin || '1234');
   const [currentWorkerPin, setCurrentWorkerPin] = useState(activeFarm.workerPin || '0000');
 
-  // 5 Wrong Attempts Lockout State
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
 
-  // Forgot PIN / OTP Reset States
   const [isResetMode, setIsResetMode] = useState(false);
   const [resetOtp, setResetOtp] = useState('');
   const [enteredResetOtp, setEnteredResetOtp] = useState('');
@@ -37,7 +35,6 @@ export default function FarmDashboard({
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Sync role when switching between farms in dropdown
   useEffect(() => {
     setCurrentAdminPin(activeFarm.pin || '1234');
     setCurrentWorkerPin(activeFarm.workerPin || '0000');
@@ -53,7 +50,6 @@ export default function FarmDashboard({
     }
   }, [activeFarm.id, activeFarm.plan]);
 
-  // Countdown timer when locked out after 5 wrong PINs
   useEffect(() => {
     if (lockoutSeconds <= 0) return;
     const timer = setInterval(() => {
@@ -78,7 +74,6 @@ export default function FarmDashboard({
       setAuthRole(loginRoleSelect);
       setFailedAttempts(0);
       setLoginPinInput('');
-      // Worker goes straight to Daily Ops & Feed; Admin goes to Dashboard
       setActiveTab(loginRoleSelect === 'WORKER' ? 'ops' : 'dashboard');
       showToast(`🔓 Logged in as ${loginRoleSelect === 'ADMIN' ? 'Farm Owner (Admin)' : 'Staff / Worker'}`);
     } else {
@@ -86,7 +81,7 @@ export default function FarmDashboard({
       setFailedAttempts(nextFails);
       setLoginPinInput('');
       if (nextFails >= 5) {
-        setLockoutSeconds(300); // Lock for 5 minutes (300 seconds)
+        setLockoutSeconds(300);
         showToast('🚨 Account locked for 5 minutes due to 5 wrong PIN attempts!');
       } else {
         showToast(`❌ Wrong PIN! ${5 - nextFails} attempts remaining.`);
@@ -119,7 +114,6 @@ export default function FarmDashboard({
       setCurrentWorkerPin(newWorkerPin);
     }
 
-    // Persist updated PINs into LocalStorage so it survives refresh
     try {
       const savedFarms = JSON.parse(localStorage.getItem('kamadhenu_multi_farms_v2') || '[]');
       const updatedFarms = savedFarms.map(f =>
@@ -137,11 +131,10 @@ export default function FarmDashboard({
     setIsResetMode(false);
     showToast('✅ PINs regenerated successfully! You can log in now.');
   };
-  // =========================================================================
-  // === [SECURITY PATCH 1 END] ==============================================
-  // =========================================================================
 
-  // Local ERP Module States
+  // =========================================================================
+  // === Local ERP Module States =============================================
+  // =========================================================================
   const [inventory, setInventory] = useState([
     { id: 'f1', name: 'Green Fodder (Super Napier + Maize)', stock: 1800, unit: 'kg', rate: 3.0 },
     { id: 'f2', name: 'Dry Fodder (Bhusa)', stock: 2400, unit: 'kg', rate: 2.0 },
@@ -153,9 +146,43 @@ export default function FarmDashboard({
     { id: 1, name: 'Ramesh Yadav', role: 'Senior Milker', salary: 14000, freeMilk: 1.5 }
   ]);
 
-  const [milkLogs, setMilkLogs] = useState([
-    { id: 1, date: '2026-11-14', rawLiters: 15, dahiLiters: 8, makhanKg: 1.5 }
+  // Customizable Dairy Products Catalog
+  const [dairyProducts, setDairyProducts] = useState([
+    { id: 'p1', name: 'Raw Milk', unit: 'L' },
+    { id: 'p2', name: 'Dahi (Curd)', unit: 'L' },
+    { id: 'p3', name: 'White Makhan', unit: 'kg' },
+    { id: 'p4', name: 'Pure Ghee', unit: 'kg' },
+    { id: 'p5', name: 'Fresh Paneer', unit: 'kg' },
+    { id: 'p6', name: 'Buttermilk (Chaas)', unit: 'L' }
   ]);
+
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customItem, setCustomItem] = useState({ name: '', unit: 'kg' });
+
+  // Clean empty initial array so user starts fresh with their own dates & prices
+  const [milkLogs, setMilkLogs] = useState([]);
+
+  const [newLogEntry, setNewLogEntry] = useState({
+    date: todayStr,
+    productId: 'p1',
+    qty: '',
+    rate: ''
+  });
+
+  const handleAddCustomProduct = (e) => {
+    e.preventDefault();
+    if (!customItem.name.trim()) return;
+    const newProd = {
+      id: 'p-' + Date.now(),
+      name: customItem.name.trim(),
+      unit: customItem.unit
+    };
+    setDairyProducts([...dairyProducts, newProd]);
+    setNewLogEntry({ ...newLogEntry, productId: newProd.id });
+    setCustomItem({ name: '', unit: 'kg' });
+    setShowCustomForm(false);
+    showToast(`✅ Added "${newProd.name} (${newProd.unit})" to product list!`);
+  };
 
   // Forms
   const [newCow, setNewCow] = useState({
@@ -177,14 +204,25 @@ export default function FarmDashboard({
     showToast(`📦 Added ${q} kg successfully to stock!`);
   };
 
-  const [newMilk, setNewMilk] = useState({ rawLiters: '', dahiLiters: '', makhanKg: '' });
   const [newEmp, setNewEmp] = useState({ name: '', role: '', salary: '', freeMilk: '' });
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
 
-  // Calculations
+  // Revenue & Margin Calculations
+  const totalLoggedDairyRevenue = milkLogs.reduce(
+    (sum, log) => sum + (Number(log.qty) || 0) * (Number(log.rate) || 0),
+    0
+  );
+
+  const selectedDateRevenue = milkLogs
+    .filter(l => l.date === newLogEntry.date)
+    .reduce((sum, l) => sum + (Number(l.qty) || 0) * (Number(l.rate) || 0), 0);
+
   const totalDailyYield = cows.reduce((s, c) => s + Number(c.dailyYield || 0), 0);
-  const estMonthlyRev = (totalDailyYield * 62 * 30) + milkLogs.reduce((s, l) => s + (l.dahiLiters * 80) + (l.makhanKg * 550), 0);
+  const latestMilkLog = milkLogs.find(l => l.productName.toLowerCase().includes('milk'));
+  const activeMilkRate = latestMilkLog && Number(latestMilkLog.rate) > 0 ? Number(latestMilkLog.rate) : 62;
+
+  const estMonthlyRev = (totalDailyYield * activeMilkRate * 30) + totalLoggedDairyRevenue;
   const totalSalaries = employees.reduce((s, e) => s + Number(e.salary || 0), 0);
   const netProfit = estMonthlyRev - totalSalaries - 18500;
 
@@ -212,12 +250,12 @@ export default function FarmDashboard({
 
   const toggleCowPriceVisibility = (cowId) => {
     updateFarmCows(cows.map(c => c.id === cowId ? { ...c, showPrice: !c.showPrice } : c));
-    showToast("Updated public price visibility!");
+    showToast('Updated public price visibility!');
   };
 
   const toggleCowMarketplace = (cowId) => {
     if (!planRules.marketplace) {
-      showToast("⚠️ Upgrade to STARTER or higher to list animals in Public Marketplace!");
+      showToast('⚠️ Upgrade to STARTER or higher to list animals in Public Marketplace!');
       return;
     }
     updateFarmCows(cows.map(c => c.id === cowId ? { ...c, inMarketplace: !c.inMarketplace } : c));
@@ -237,11 +275,11 @@ export default function FarmDashboard({
       freeMilk: Number(newEmp.freeMilk) || 1
     }]);
     setNewEmp({ name: '', role: '', salary: '', freeMilk: '' });
-    showToast("👷 Employee added to HRMS!");
+    showToast('👷 Employee added to HRMS!');
   };
 
   // =========================================================================
-  // === [SECURITY PATCH 2 START] : Role Login Screen (Shown before Dashboard) =
+  // === Role Login Screen ===================================================
   // =========================================================================
   if (!authRole) {
     const mins = Math.floor(lockoutSeconds / 60);
@@ -260,7 +298,6 @@ export default function FarmDashboard({
                 <p className="text-xs opacity-75">Select your role and enter 4-digit access PIN</p>
               </div>
 
-              {/* Role Selector Buttons */}
               <div className="grid grid-cols-2 gap-3 text-xs font-bold">
                 <button
                   type="button"
@@ -288,7 +325,6 @@ export default function FarmDashboard({
                 </button>
               </div>
 
-              {/* Lockout Warning Banner */}
               {lockoutSeconds > 0 ? (
                 <div className="p-5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-center space-y-2">
                   <AlertTriangle className="mx-auto text-rose-400" size={28} />
@@ -329,7 +365,6 @@ export default function FarmDashboard({
                 </form>
               )}
 
-              {/* Forgot PIN Link */}
               <div className="pt-2 border-t border-current/10 text-center">
                 <button
                   type="button"
@@ -341,7 +376,6 @@ export default function FarmDashboard({
               </div>
             </>
           ) : (
-            /* FORGOT PIN / OTP REGENERATION SCREEN */
             <form onSubmit={handleConfirmPinReset} className="space-y-4 text-xs">
               <div className="text-center space-y-1">
                 <h3 className="text-lg font-black text-emerald-500">Reset Farm Access PINs</h3>
@@ -406,26 +440,25 @@ export default function FarmDashboard({
       </div>
     );
   }
-  // =========================================================================
-  // === [SECURITY PATCH 2 END] ==============================================
-  // =========================================================================
 
   // =========================================================================
-  // === [SECURITY PATCH 3 START] : Tab Filtering (Worker sees ONLY Ops tab) ==
+  // === Tab Filtering (Worker sees Ops + Cow Diet & Ration) =================
   // =========================================================================
   const visibleTabs = authRole === 'WORKER'
-    ? [{ id: 'ops', label: t.ops, icon: Calculator }]
+    ? [
+        { id: 'ops', label: t.ops, icon: Calculator },
+        { id: 'feedadvisor', label: '🌾 Cow Diet & Ration', icon: Wheat }
+      ]
     : [
         { id: 'dashboard', label: t.dashboard, icon: TrendingUp },
-        { id: 'feedadvisor', label: '🌾 Cow Diet & Ration', icon: Wheat },
         { id: 'herd', label: `${t.herd} (${cows.length})`, icon: ShieldCheck },
         { id: 'ops', label: t.ops, icon: Calculator },
+        { id: 'feedadvisor', label: '🌾 Cow Diet & Ration', icon: Wheat },
         { id: 'hrms', label: `${t.hrms} (${employees.length})`, icon: Users },
         { id: 'finance', label: t.finance, icon: Lock }
       ];
-  // =========================================================================
-  // === [SECURITY PATCH 3 END] ==============================================
-  // =========================================================================
+
+  const selectedProductObj = dairyProducts.find(p => p.id === newLogEntry.productId) || dairyProducts[0];
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
@@ -462,7 +495,7 @@ export default function FarmDashboard({
         </div>
       </div>
 
-      {/* Sub-navigation Tabs (Filtered by Role) */}
+      {/* Sub-navigation Tabs */}
       <div className="flex space-x-2 overflow-x-auto pb-2">
         {visibleTabs.map(tab => {
           const Icon = tab.icon;
@@ -492,7 +525,7 @@ export default function FarmDashboard({
           <div className={`p-6 rounded-3xl border ${cardClass}`}>
             <p className="text-xs opacity-70 font-bold uppercase">{t.estRevenue}</p>
             <h3 className="text-3xl font-black text-emerald-500 mt-2">₹{estMonthlyRev.toLocaleString()}</h3>
-            <p className="text-xs opacity-70 mt-1">Milk + Dahi + Makhan</p>
+            <p className="text-xs opacity-70 mt-1">Herd + Logged Dairy Sales</p>
           </div>
           <div className={`p-6 rounded-3xl border ${cardClass}`}>
             <p className="text-xs opacity-70 font-bold uppercase">{t.fixedOverheads}</p>
@@ -552,7 +585,6 @@ export default function FarmDashboard({
             </div>
           </form>
 
-          {/* Herd List with Individual Price Toggle */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {cows.map(cow => (
               <div key={cow.id} className={`p-6 rounded-3xl border space-y-3 ${cardClass}`}>
@@ -571,7 +603,6 @@ export default function FarmDashboard({
                   <p>Daily Milk Yield: <strong>{cow.dailyYield} Liters/day</strong></p>
                 </div>
 
-                {/* Marketplace & Price Visibility Controls */}
                 <div className="pt-3 border-t border-current/10 space-y-2 text-xs">
                   <div className="flex justify-between items-center">
                     <span>Public Marketplace:</span>
@@ -604,10 +635,10 @@ export default function FarmDashboard({
       {/* TAB 3: DAILY OPS & FEED (ACCESSIBLE TO BOTH ADMIN & WORKER) */}
       {activeTab === 'ops' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* LEFT CARD: FEED INVENTORY */}
           <div className={`p-6 rounded-3xl border space-y-4 ${cardClass}`}>
             <h3 className="font-bold text-lg">📦 Feed Inventory (Deduct & Restock)</h3>
-            
-            {/* Deduct Form */}
+
             <form onSubmit={(e) => {
               e.preventDefault();
               const q = Number(feedDeduct.qty);
@@ -623,7 +654,6 @@ export default function FarmDashboard({
               <button type="submit" className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs">Deduct</button>
             </form>
 
-            {/* Add / Refill Stock Form */}
             <form onSubmit={handleAddStock} className="flex gap-2 pt-2 border-t border-current/10">
               <select value={stockAdd.id} onChange={e => setStockAdd({...stockAdd, id: e.target.value})} className={`flex-1 rounded-xl px-3 py-2 text-xs border ${inputClass}`}>
                 {inventory.map(i => <option key={i.id} value={i.id}>Refill: {i.name}</option>)}
@@ -642,8 +672,19 @@ export default function FarmDashboard({
             </div>
           </div>
 
+          {/* RIGHT CARD: CUSTOMIZABLE DAIRY PRODUCTION + CALENDAR DATE + MANDATORY PRICE */}
           <div className={`p-6 rounded-3xl border space-y-4 ${cardClass}`}>
-            <h3 className="font-bold text-lg">🥛 Value-Add Dairy Log (Dahi & Makhan)</h3>
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <h3 className="font-bold text-lg">🥛 Dairy Production & Sales Log</h3>
+              <button
+                type="button"
+                onClick={() => setShowCustomForm(!showCustomForm)}
+                className="text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl hover:bg-amber-500/30 transition"
+              >
+                {showCustomForm ? '✕ Close' : '+ Add Custom Item (Paneer/Ghee/etc.)'}
+              </button>
+            </div>
+
             {!planRules.valueAdd ? (
               <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
                 <AlertTriangle className="mx-auto text-amber-400" />
@@ -654,29 +695,184 @@ export default function FarmDashboard({
               </div>
             ) : (
               <>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  setMilkLogs([{ id: Date.now(), date: new Date().toISOString().split('T')[0], rawLiters: Number(newMilk.rawLiters)||0, dahiLiters: Number(newMilk.dahiLiters)||0, makhanKg: Number(newMilk.makhanKg)||0 }, ...milkLogs]);
-                  setNewMilk({ rawLiters: '', dahiLiters: '', makhanKg: '' });
-                  showToast("🥛 Production logged!");
-                }} className="grid grid-cols-4 gap-2 text-xs">
-                  <input type="number" placeholder="Raw Milk (L)" value={newMilk.rawLiters} onChange={e => setNewMilk({...newMilk, rawLiters: e.target.value})} className={`rounded-xl px-3 py-2 border ${inputClass}`} />
-                  <input type="number" placeholder="Dahi (L)" value={newMilk.dahiLiters} onChange={e => setNewMilk({...newMilk, dahiLiters: e.target.value})} className={`rounded-xl px-3 py-2 border ${inputClass}`} />
-                  <input type="number" step="0.1" placeholder="Makhan (kg)" value={newMilk.makhanKg} onChange={e => setNewMilk({...newMilk, makhanKg: e.target.value})} className={`rounded-xl px-3 py-2 border ${inputClass}`} />
-                  <button type="submit" className="bg-emerald-600 text-white font-bold rounded-xl">Log</button>
-                </form>
-                <div className="space-y-2">
-                  {milkLogs.map(l => (
-                    <div key={l.id} className="p-3 rounded-xl bg-current/5 flex justify-between text-xs">
-                      <span>{l.date}</span>
-                      <span className="font-bold">Milk: {l.rawLiters}L • Dahi: {l.dahiLiters}L • Makhan: {l.makhanKg}kg</span>
+                {/* CUSTOM ITEM CREATOR BOX */}
+                {showCustomForm && (
+                  <form onSubmit={handleAddCustomProduct} className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3 text-xs">
+                    <p className="font-bold text-amber-400">Create New Dairy Product</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        required
+                        type="text"
+                        placeholder="Item Name (e.g. Bilona Ghee, Khoya)"
+                        value={customItem.name}
+                        onChange={e => setCustomItem({ ...customItem, name: e.target.value })}
+                        className={`sm:col-span-2 rounded-xl px-3 py-2 border ${inputClass}`}
+                      />
+                      <select
+                        value={customItem.unit}
+                        onChange={e => setCustomItem({ ...customItem, unit: e.target.value })}
+                        className={`rounded-xl px-3 py-2 border font-bold ${inputClass}`}
+                      >
+                        <option value="L">Unit: Liters (L)</option>
+                        <option value="kg">Unit: Kilograms (kg)</option>
+                        <option value="gm">Unit: Grams (gm)</option>
+                        <option value="Pkt">Unit: Packets (Pkt)</option>
+                        <option value="Btl">Unit: Bottles (Btl)</option>
+                      </select>
                     </div>
-                  ))}
+                    <button type="submit" className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 rounded-xl">
+                      Save Item to Dropdown
+                    </button>
+                  </form>
+                )}
+
+                {/* DAILY PRODUCTION + CALENDAR DATE + MANDATORY RATE FORM */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const q = Number(newLogEntry.qty);
+                    const r = Number(newLogEntry.rate);
+
+                    if (!newLogEntry.date || !q || q <= 0 || !r || r <= 0) {
+                      showToast('⚠️ Date, Quantity, and Rate are all mandatory!');
+                      return;
+                    }
+
+                    const entry = {
+                      id: Date.now(),
+                      date: newLogEntry.date,
+                      productName: selectedProductObj.name,
+                      unit: selectedProductObj.unit,
+                      qty: q,
+                      rate: r
+                    };
+
+                    setMilkLogs([entry, ...milkLogs]);
+                    setNewLogEntry({ ...newLogEntry, qty: '', rate: '' });
+                    showToast(`✅ Logged ${q} ${selectedProductObj.unit} ${selectedProductObj.name} (${entry.date}) = ₹${(q * r).toLocaleString()}`);
+                  }}
+                  className="space-y-3 text-xs"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold mb-1 opacity-80 flex items-center gap-1">
+                        <Calendar size={12} className="text-emerald-400" /> Entry Date (YYYY-MM-DD) *
+                      </label>
+                      <input
+                        required
+                        type="date"
+                        value={newLogEntry.date}
+                        onChange={e => setNewLogEntry({ ...newLogEntry, date: e.target.value })}
+                        className={`w-full rounded-xl px-3 py-2 border font-mono ${inputClass}`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold mb-1 opacity-80">Select Dairy Product *</label>
+                      <select
+                        value={newLogEntry.productId}
+                        onChange={e => setNewLogEntry({ ...newLogEntry, productId: e.target.value })}
+                        className={`w-full rounded-xl px-3 py-2 border font-bold ${inputClass}`}
+                      >
+                        {dairyProducts.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.unit})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold mb-1 opacity-80">
+                        Quantity ({selectedProductObj.unit}) *
+                      </label>
+                      <input
+                        required
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        placeholder="e.g. 10"
+                        value={newLogEntry.qty}
+                        onChange={e => setNewLogEntry({ ...newLogEntry, qty: e.target.value })}
+                        className={`w-full rounded-xl px-3 py-2 border ${inputClass}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold mb-1 text-emerald-400">
+                        Selling Price (₹ / {selectedProductObj.unit}) *
+                      </label>
+                      <input
+                        required
+                        type="number"
+                        step="0.5"
+                        min="1"
+                        placeholder="e.g. 90"
+                        value={newLogEntry.rate}
+                        onChange={e => setNewLogEntry({ ...newLogEntry, rate: e.target.value })}
+                        className={`w-full rounded-xl px-3 py-2 border ${inputClass}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live Entry Preview */}
+                  <div className="p-2.5 rounded-xl bg-current/5 flex justify-between items-center">
+                    <span className="opacity-75">This Entry Value ({newLogEntry.date}):</span>
+                    <strong className="text-emerald-400 text-sm">
+                      ₹{((Number(newLogEntry.qty) || 0) * (Number(newLogEntry.rate) || 0)).toLocaleString()}
+                    </strong>
+                  </div>
+
+                  <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-xl shadow transition">
+                    + Log Production & Update Revenue
+                  </button>
+                </form>
+
+                {/* Selected Date vs Total Summary */}
+                <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                    <p className="text-[10px] opacity-75 uppercase font-bold">Sales on {newLogEntry.date}</p>
+                    <p className="text-base font-black text-emerald-400 mt-0.5">₹{selectedDateRevenue.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20">
+                    <p className="text-[10px] opacity-75 uppercase font-bold">All Logged Total</p>
+                    <p className="text-base font-black text-sky-400 mt-0.5">₹{totalLoggedDairyRevenue.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Logs History */}
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {milkLogs.length === 0 ? (
+                    <p className="text-center text-xs opacity-60 py-4">
+                      No production logged yet. Select a date, item, quantity & rate above to start!
+                    </p>
+                  ) : (
+                    milkLogs.map(l => (
+                      <div key={l.id} className="p-3 rounded-xl bg-current/5 flex justify-between items-center text-xs">
+                        <div>
+                          <span className="font-bold text-emerald-400">{l.productName}</span>
+                          <span className="opacity-60 ml-2 text-[11px] font-mono">{l.date}</span>
+                          <p className="opacity-80 mt-0.5">
+                            Qty: <strong>{l.qty} {l.unit}</strong> × Rate: <strong>₹{l.rate}/{l.unit}</strong>
+                          </p>
+                        </div>
+                        <span className="font-black text-sm">
+                          ₹{((Number(l.qty) || 0) * (Number(l.rate) || 0)).toLocaleString()}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </>
             )}
           </div>
         </div>
+      )}
+
+      {/* TAB: COW DIET & RATION CALCULATOR (ACCESSIBLE TO BOTH ADMIN & WORKER) */}
+      {activeTab === 'feedadvisor' && (
+        <FeedAdvisor cardClass={cardClass} inputClass={inputClass} />
       )}
 
       {/* TAB 4: HRMS WITH PLAN STAFF LIMIT (ADMIN ONLY) */}
@@ -717,11 +913,8 @@ export default function FarmDashboard({
           )}
         </div>
       )}
-    {/* TAB 5: Cow Diet & Ration Calculator Tab View */}
-      {activeTab === 'feedadvisor' && (
-        <FeedAdvisor cardClass={cardClass} inputClass={inputClass} />
-      )}
-      {/* TAB 6: 2FA BALANCE SHEET (ADMIN ONLY) */}
+
+      {/* TAB 5: 2FA BALANCE SHEET (ADMIN ONLY) */}
       {authRole === 'ADMIN' && activeTab === 'finance' && (
         <div className={`max-w-lg mx-auto p-8 rounded-3xl border text-center space-y-4 ${cardClass}`}>
           {!isUnlocked ? (
