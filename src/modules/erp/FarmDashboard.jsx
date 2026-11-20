@@ -447,7 +447,7 @@ export default function FarmDashboard({
   const visibleTabs = authRole === 'WORKER'
     ? [
         { id: 'ops', label: t.ops, icon: Calculator },
-        { id: 'feedadvisor', label: '🌾 Cow Diet & Ration', icon: Wheat }
+        { id: 'feedadvisor', label: '🌾 ${t.cowDietTab}', icon: Wheat }
       ]
     : [
         { id: 'dashboard', label: t.dashboard, icon: TrendingUp },
@@ -637,7 +637,7 @@ export default function FarmDashboard({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* LEFT CARD: FEED INVENTORY */}
           <div className={`p-6 rounded-3xl border space-y-4 ${cardClass}`}>
-            <h3 className="font-bold text-lg">📦 Feed Inventory (Deduct & Restock)</h3>
+            <h3 className="font-bold text-lg">📦 {t.FeedInventoryTitle} (Deduct & Restock)</h3>
 
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -650,7 +650,7 @@ export default function FarmDashboard({
               <select value={feedDeduct.id} onChange={e => setFeedDeduct({...feedDeduct, id: e.target.value})} className={`flex-1 rounded-xl px-3 py-2 text-xs border ${inputClass}`}>
                 {inventory.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
-              <input required type="number" placeholder="Minus Kg" value={feedDeduct.qty} onChange={e => setFeedDeduct({...feedDeduct, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
+              <input required type="number" placeholder={t.minusKgPlaceholder} value={feedDeduct.qty} onChange={e => setFeedDeduct({...feedDeduct, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
               <button type="submit" className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs">Deduct</button>
             </form>
 
@@ -658,7 +658,7 @@ export default function FarmDashboard({
               <select value={stockAdd.id} onChange={e => setStockAdd({...stockAdd, id: e.target.value})} className={`flex-1 rounded-xl px-3 py-2 text-xs border ${inputClass}`}>
                 {inventory.map(i => <option key={i.id} value={i.id}>Refill: {i.name}</option>)}
               </select>
-              <input required type="number" placeholder="Add Kg" value={stockAdd.qty} onChange={e => setStockAdd({...stockAdd, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
+              <input required type="number" placeholder={t.addKgPlaceholder} value={stockAdd.qty} onChange={e => setStockAdd({...stockAdd, qty: e.target.value})} className={`w-24 rounded-xl px-3 py-2 text-xs border ${inputClass}`} />
               <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs">+ Add Stock</button>
             </form>
 
@@ -675,13 +675,13 @@ export default function FarmDashboard({
           {/* RIGHT CARD: CUSTOMIZABLE DAIRY PRODUCTION + CALENDAR DATE + MANDATORY PRICE */}
           <div className={`p-6 rounded-3xl border space-y-4 ${cardClass}`}>
             <div className="flex flex-wrap justify-between items-center gap-2">
-              <h3 className="font-bold text-lg">🥛 Dairy Production & Sales Log</h3>
+              <h3 className="font-bold text-lg">🥛 {t.dairyLogTitle}</h3>
               <button
                 type="button"
                 onClick={() => setShowCustomForm(!showCustomForm)}
                 className="text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-xl hover:bg-amber-500/30 transition"
               >
-                {showCustomForm ? '✕ Close' : '+ Add Custom Item (Paneer/Ghee/etc.)'}
+                {showCustomForm ? t.closeBtn : t.addCustomItemBtn}
               </button>
             </div>
 
