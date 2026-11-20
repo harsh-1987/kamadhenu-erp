@@ -6,6 +6,7 @@ import BreedMarketplace from './modules/marketplace/BreedMarketplace';
 import SuperAdminDashboard from './modules/admin/SuperAdminDashboard';
 import FarmDashboard from './modules/erp/FarmDashboard';
 import FeedAdvisor from './modules/erp/FeedAdvisor';
+import LoginModal from './components/LoginModal';
 
 export default function App() {
   const [lang, setLang] = useState('en');
