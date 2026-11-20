@@ -7,7 +7,7 @@ import { PLAN_LIMITS } from '../../data/translations';
 import FeedAdvisor from './FeedAdvisor';
 
 export default function FarmDashboard({
-  activeFarm, updateFarmCows, t, cardClass, inputClass, showToast, onUpgradePlan
+  activeFarm, updateFarmCows, t, initialRole = null,cardClass, inputClass, showToast, onUpgradePlan
 }) {
   const planRules = PLAN_LIMITS[activeFarm.plan] || PLAN_LIMITS.FREE;
   const isPaidPlan = activeFarm.plan !== 'FREE';
